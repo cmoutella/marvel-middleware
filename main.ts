@@ -53,7 +53,7 @@ export type Hero = {
 type Hash_Generator = (string) => Promise<string>;
 
 const generateHash: Hash_Generator = async (ts) => {
-  const toHash = `${ts}${MARVEL_PUBLIC_KEY}${Deno.env.get("MARVEL_PVT_KEY")}`;
+  const toHash = `${ts}${Deno.env.get("MARVEL_PVT_KEY")}${MARVEL_PUBLIC_KEY}`;
 
   const finalHash: string = await crypto.subtle.digest(
     "MD5",
@@ -124,10 +124,7 @@ router
         pubKey: MARVEL_PUBLIC_KEY
       }
 
-      context.response.body = {
-        data: data, 
-        message: 'SUCCESS'
-      }
+      context.response.body = JSON.stringify(data)
     } else {
       context.response.body = JSON.stringify({
         data: null,

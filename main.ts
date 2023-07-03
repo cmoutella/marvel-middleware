@@ -110,6 +110,31 @@ router
   .get("/", async (context) => {
     context.response.body = "I'm working, let's fetch some heros!";
   })
+  .get("/api/hash", async (context) => {
+    const urlData = new URL(context.request.url)
+    const searchParams = new URLSearchParams(urlData.search)
+
+    if (searchParams.has('ts')) {
+      const ts = searchParams.get('ts')
+      const hash = await generateHash(ts)
+
+      const data = {
+        hash: hash,
+        ts: ts,
+        pubKey: MARVEL_PUBLIC_KEY
+      }
+
+      context.response.body = {
+        data: data, 
+        message: 'SUCCESS'
+      }
+    } else {
+      context.response.body = JSON.stringify({
+        data: null,
+        message: 'ERROR: Missing timestamp'
+      })
+    }
+  })
   .get("/api/heros", async (context) => {
     const searchParams = context.request.url.search
     console.log('#################')

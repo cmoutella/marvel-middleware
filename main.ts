@@ -7,9 +7,6 @@ import { crypto, toHashString } from "https://deno.land/std@0.192.0/crypto/mod.t
 const MARVEL_PUBLIC_KEY: string = "2691643914b2e2abf77b6b5b7de5b867";
 
 // Request Types
-type ManyHerosProps = {
-  searchTerm: string;
-};
 
 type OneHeroProps = {
   heroId: string;
@@ -63,48 +60,6 @@ const generateHash: Hash_Generator = async (ts) => {
   return toHashString(finalHash);
 };
 
-// Requests
-const getOneHero = async (heroId: OneHeroProps) => {
-  const ts: string = Math.floor(new Date().getTime() / 1000).toString();
-
-  const endpoint = new URL(
-    `characters/${heroId}?ts=${ts}&apikey=${MARVEL_PUBLIC_KEY}&hash=${generateHash(ts)}`,
-    "https://gateway.marvel.com/v1/public/"
-  );
-
-  await fetch(endpoint)
-    .then((_res) => _res.json())
-    .then((res) => {
-      console.log('res', res)
-      const heroData: Hero = res.data?.results;
-      return heroData;
-    }).catch((_err) => {
-      console.log('getOneHero', _err)
-      return { error: _err }
-    });
-};
-
-const getManyHeros = async (  searchParams
-: ManyHerosProps) => {
-  const ts = Math.floor(new Date().getTime() / 1000).toString();
-
-  const endpoint = new URL(
-    `characters${searchParams}&limit=100&ts=${ts}&apikey=${MARVEL_PUBLIC_KEY}&hash=${generateHash(ts)}`,
-    "http://gateway.marvel.com/v1/public/"
-  );
-
-  await fetch(endpoint)
-    .then((_res) => _res.json())
-    .then((res) => {
-      console.log('res', res)
-      const manyHeros: Hero[] = res.data?.results;
-      return manyHeros;
-    }).catch((_err) => {
-      console.log('getManyHeros', _err)
-      return { error: _err }
-    });
-};
-
 const router = new Router();
 router
   .get("/", async (context) => {
@@ -134,19 +89,53 @@ router
   })
   .get("/api/heros", async (context) => {
     const searchParams = context.request.url.search
-    console.log('#################')
-    console.log('MANY HEROS')
-    const manyHeros = await getManyHeros(searchParams);
-    console.log('manyHeros', manyHeros)
-    context.response.body = manyHeros
+    let manyHeros: Hero[] = []
+
+    const ts = Math.floor(new Date().getTime() / 1000).toString();
+
+    const endpoint = new URL(
+      `characters${searchParams}`,
+      "http://gateway.marvel.com/v1/public/"
+    );
+
+    endpoint.searchParams.append('limit', '50')
+    endpoint.searchParams.append('ts', ts)
+    endpoint.searchParams.append('apikey', MARVEL_PUBLIC_KEY)
+    endpoint.searchParams.append('hash', await generateHash(ts))
+  
+    await fetch(endpoint.href)
+      .then((_res) => _res.json())
+      .then((res) => {
+        manyHeros = res.data?.results;
+      }).catch((_err) => {
+        context.response.body = { message: _err }
+      });
+
+    context.response.body = JSON.stringify(manyHeros)
   })
   .get("/api/hero/:heroId", async (context) => {
     const heroId = context.params.heroId
-    console.log('#################')
-    console.log('ONE HERO')
-    const oneHero = await getOneHero(heroId);
-    console.log('oneHero', oneHero)
-    context.response.body = oneHero
+    let oneHero: Hero | null = null
+    const ts: string = Math.floor(new Date().getTime() / 1000).toString();
+    
+    const endpoint = new URL(
+      `characters/${heroId}`,
+      "http://gateway.marvel.com/v1/public/"
+      );
+
+      endpoint.searchParams.append('ts', ts)
+      endpoint.searchParams.append('apikey', MARVEL_PUBLIC_KEY)
+      endpoint.searchParams.append('hash', await generateHash(ts))
+
+    await fetch(endpoint.href)
+      .then((_res) => _res.json())
+      .then((res) => {
+        oneHero = res.data.results[0];
+      }).catch((_err) => {
+        context.response.body = { message: _err }
+      });
+
+      context.response.body = JSON.stringify(oneHero)
   });
 
 const app = new Application();

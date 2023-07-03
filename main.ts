@@ -53,8 +53,6 @@ export type Hero = {
 type Hash_Generator = (string) => Promise<string>;
 
 const generateHash: Hash_Generator = async (ts) => {
-  // my fun
-
   const toHash = `${ts}${MARVEL_PUBLIC_KEY}${Deno.env.get("MARVEL_PVT_KEY")}`;
 
   const finalHash: string = await crypto.subtle.digest(
@@ -82,6 +80,7 @@ const getOneHero = async (heroId: OneHeroProps) => {
       return heroData;
     }).catch((_err) => {
       console.log('getOneHero', _err)
+      return { error: _err }
     });
 };
 
@@ -102,11 +101,15 @@ const getManyHeros = async (  searchParams
       return manyHeros;
     }).catch((_err) => {
       console.log('getManyHeros', _err)
+      return { error: _err }
     });
 };
 
 const router = new Router();
 router
+  .get("/", async (context) => {
+    context.response.body = "I'm working, let's fetch some heros!";
+  })
   .get("/api/heros", async (context) => {
     const searchParams = context.request.url.search
     console.log('#################')
